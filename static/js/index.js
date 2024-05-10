@@ -16,7 +16,7 @@ document.getElementById('tickerForm').addEventListener('submit', function(e) {
                 y: data.baseline_preds,
                 type: 'scatter',
                 mode: 'lines+markers',
-                name: 'Baseline Predictions'
+                name: 'LSTM Predictions'
             };
             const trace3 = {
                 x: data.dates,

@@ -3,6 +3,8 @@ from keras import Sequential
 from tensorflow.keras.layers import Dense, LSTM
 from tensorflow.keras.callbacks import EarlyStopping
 
+tf.random.set_seed(42)
+
 
 def build_lstm(etl, epochs=25, batch_size=32) -> tuple[tf.keras.Model, tf.keras.callbacks.History]:
     """
@@ -24,4 +26,6 @@ def build_lstm(etl, epochs=25, batch_size=32) -> tuple[tf.keras.Model, tf.keras.
                         verbose=1,
                         callbacks=callbacks)
     return model, history
+
+
 

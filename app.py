@@ -2,7 +2,6 @@ from flask import Flask, request, jsonify, render_template
 
 from helpers.etl import ETL
 from helpers.predict_and_forecast import PredictAndForecast
-from models.model_manager import get_or_build_model
 from prediction import prediction
 
 app = Flask(__name__)
@@ -16,38 +15,28 @@ def index():  # put application's code here
 @app.route('/predict')
 def predict():
     ticker = request.args.get('ticker')
-    etl_instance = ETL(ticker)  # ETL setup
+    etl_instance, baseline_preds, transformer_preds = prediction(ticker)
 
-    lstm_model = get_or_build_model('lstm', ticker, etl_instance)
-    transformer_model = get_or_build_model('transformer', ticker, etl_instance)
+    # Correctly calculating the start index for prediction dates
+    prediction_start_idx = len(etl_instance.train) - etl_instance.n_input + 1
 
-    lstm_preds = PredictAndForecast(lstm_model, etl_instance.X_train, etl_instance.X_test).predictions.tolist()
-    transformer_preds = PredictAndForecast(transformer_model, etl_instance.X_train, etl_instance.X_test).predictions.tolist()
+    # Debug print to check what dates are being calculated
+    print("Start index for predictions:", prediction_start_idx)
+    print("Actual dates being used:", etl_instance.df.index[prediction_start_idx:prediction_start_idx + len(baseline_preds.predictions)].strftime('%Y-%m-%d').tolist())
+
+    # Fetch dates for predictions
+    prediction_dates = etl_instance.df.index[
+                       prediction_start_idx:prediction_start_idx + len(baseline_preds.predictions)].strftime(
+        '%Y-%m-%d').tolist()
 
     return jsonify({
-        'dates': etl_instance.df.index.strftime('%Y-%m-%d').tolist(),
-        'data': etl_instance.df.tolist(),
-        'lstm_preds': lstm_preds,
-        'transformer_preds': transformer_preds
+        'dates': prediction_dates,
+        'data': etl_instance.df[prediction_start_idx:prediction_start_idx + len(baseline_preds.predictions)].tolist(),
+        'baseline_preds': baseline_preds.predictions.flatten().tolist(),
+        'transformer_preds': transformer_preds.predictions.flatten().tolist()
     })
 
 
-# @app.route('/predict')
-# def predict():
-#     ticker = request.args.get('ticker')
-#
-#     etl_instance, baseline_preds, transformer_preds = prediction(ticker)
-#
-#     # Assuming 'baseline_preds' and 'transformer_preds' are instances of PredictAndForecast
-#     baseline_list = baseline_preds.predictions.tolist()
-#     transformer_list = transformer_preds.predictions.tolist()
-#
-#     return jsonify({
-#         'dates': etl_instance.df.index.strftime('%Y-%m-%d').tolist(),  # Format dates for JSON serialization
-#         'data': etl_instance.df.tolist(),  # Convert DataFrame or Series to list
-#         'baseline_preds': baseline_list,
-#         'transformer_preds': transformer_list
-#     })
 
 
 if __name__ == '__main__':
